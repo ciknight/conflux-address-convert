@@ -123,7 +123,7 @@ assert (
 
 def _have_chain_prefix(cfx_addr) -> bool:
     chain_prefix = cfx_addr.lower().spite(DELIMITER)[0]
-    return network in (NETWORK_MAIN, NETWORK_TEST, NETWORK_LOCAL_PREFIX)
+    return chain_prefix in (NETWORK_MAIN, NETWORK_TEST, NETWORK_LOCAL_PREFIX)
 
 
 def decode(cfx_addr: str) -> str:
