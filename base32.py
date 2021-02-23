@@ -5,7 +5,7 @@
 # Copyright © 2021 ci_knight<ci_knight@msn.cn>
 #
 # Distributed under terms of the MIT license.
-from base64 import b32encode
+from base64 import b32encode, b32decode
 import struct
 
 CONFLUX_CHARSET = "abcdefghjkmnprstuvwxyz0123456789"
@@ -13,7 +13,7 @@ STANDARD_CHARSET = "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567"
 PADDING_CHAR = "="
 
 
-def _is_valid(s: str) -> bool:
+def is_valid(s: str) -> bool:
     if not s:
         return False
 
@@ -36,6 +36,19 @@ def _from_standard(data: str) -> str:
     return result
 
 
+def _to_standard(data: str) -> str:
+    result = ""
+    for buf in data:
+        index = CONFLUX_CHARSET.index(buf)
+        result += STANDARD_CHARSET[index]
+
+    return result
+
+
+def _b32_padding(s: str):
+    return s + ("=" * (8 - (len(s) % 8)))
+
+
 def encode(buf: bytes) -> str:
     if not buf:
         raise Exception("buffer is null or empty")
@@ -44,7 +57,7 @@ def encode(buf: bytes) -> str:
 
 
 def decode_words(words: str) -> bytes:
-    if not _is_valid(words):
+    if not is_valid(words):
         raise Exception("include invalid char")
 
     buf = b""
@@ -53,3 +66,10 @@ def decode_words(words: str) -> bytes:
         buf += struct.pack("b", num)
 
     return buf
+
+
+def decode(s: str) -> bytes:
+    if not is_valid(s):
+        raise Exception("include invalid char")
+
+    return b32decode(_b32_padding(_to_standard(s)))

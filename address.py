@@ -6,7 +6,7 @@
 #
 # Distributed under terms of the MIT license.
 import struct
-from base64 import b16decode
+from base64 import b16decode, b16encode
 
 import base32
 
@@ -14,10 +14,11 @@ HEX_PREFIX = "0X"
 HEX_PREFIX_LEN = 2
 HEX_BUFFER_LEN = 20
 
+CFX_ADDRESS_CHAR_LENGTH = 42
+CHECKSUM_LEN = 8
 
 NETWORK_ID_MAINNET = 1029
 NETWORK_MAIN = "cfx"
-
 NETWORK_ID_TESTNET = 1
 NETWORK_TEST = "cfxtest"
 NETWORK_LOCAL_PREFIX = "net"
@@ -103,9 +104,9 @@ def _create_checksum(chain_prefix: str, payload: str) -> str:
     return base32.encode(_checksum_bytes(n))
 
 
-def encode(hex_addr: str, netid: int):
+def encode(hex_addr: str, netid: int) -> str:
     if not hex_addr:
-        raise Exception("Invalid argument [address]")
+        raise Exception("Invalid argument")
 
     buf = _address_buffer_from_hex(hex_addr)
     chain_prefix = _encode_netid(netid)
@@ -120,11 +121,41 @@ assert (
 )
 
 
-def decode(s):
-    return s
+def _have_chain_prefix(cfx_addr) -> bool:
+    chain_prefix = cfx_addr.lower().spite(DELIMITER)[0]
+    return network in (NETWORK_MAIN, NETWORK_TEST, NETWORK_LOCAL_PREFIX)
 
 
-# assert (
-#     decode("cfx:aarc9abycue0hhzgyrr53m6cxedgccrmmyybjgh4xg")
-#     == "0x1a2f80341409639ea6a35bbcab8299066109aa55"
-# )
+def decode(cfx_addr: str) -> str:
+    if not cfx_addr and not _have_chain_prefix(cfx_addr):
+        raise Exception("Invalid argument")
+
+    cfx_addr = cfx_addr.lower()
+    parts = cfx_addr.split(DELIMITER)
+    if len(parts) < 2:
+        raise Exception("Address should have at least two part")
+
+    chain_prefix = parts[0]
+    payload_with_checksum = parts[-1]
+    if not base32.is_valid(payload_with_checksum):
+        raise Exception("Input contain invalid base32 chars")
+
+    if len(payload_with_checksum) != CFX_ADDRESS_CHAR_LENGTH:
+        raise Exception("Address payload should have 42 chars")
+
+    payload, checksum = (
+        payload_with_checksum[:-CHECKSUM_LEN],
+        payload_with_checksum[CFX_ADDRESS_CHAR_LENGTH - CHECKSUM_LEN :],
+    )
+    if checksum != _create_checksum(chain_prefix, payload):
+        raise Exception("Invalid checksum")
+
+    raw = base32.decode(payload)
+    hex_addr = HEX_PREFIX + b16encode(raw).decode()[HEX_PREFIX_LEN:]
+    return hex_addr.lower()
+
+
+assert (
+    decode("cfx:aarc9abycue0hhzgyrr53m6cxedgccrmmyybjgh4xg")
+    == "0x1a2f80341409639ea6a35bbcab8299066109aa55"
+)
