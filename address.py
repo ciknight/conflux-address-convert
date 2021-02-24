@@ -30,6 +30,13 @@ DELIMITER = ":"
 CHECKSUM_TEMPLATE = bytes(8)
 
 
+class AddressType:
+    Null = "null"
+    Builtin = "builtin"
+    User = "user"
+    Contract = "contract"
+
+
 def _encode_netid(netid: int) -> str:
     if netid <= 0:
         raise Exception("chainId should be passed as in range [1, 0xFFFFFFFF]")
@@ -104,7 +111,22 @@ def _create_checksum(chain_prefix: str, payload: str) -> str:
     return base32.encode(_checksum_bytes(n))
 
 
-def encode(hex_addr: str, netid: int) -> str:
+def _address_type(s: str) -> str:
+    buf = _address_buffer_from_hex(s)
+    if not buf:
+        return AddressType.Null
+
+    if buf[0] & 0xF0 == 0x00:
+        return AddressType.Builtin
+    if buf[0] & 0xF0 == 0x10:
+        return AddressType.User
+    if buf[0] & 0xF0 == 0x80:
+        return AddressType.Contract
+
+    raise Exception("wrong type")
+
+
+def _encode(hex_addr: str, netid: int) -> str:
     if not hex_addr:
         raise Exception("Invalid argument")
 
@@ -115,9 +137,24 @@ def encode(hex_addr: str, netid: int) -> str:
     return chain_prefix + DELIMITER + payload + checksum
 
 
+def encode(hex_addr: str, netid: int, verbose: bool = False) -> str:
+    addr = _encode(hex_addr, netid)
+    if not verbose:
+        return addr
+
+    parts = addr.split(DELIMITER)
+    type_str = "type." + _address_type(hex_addr)
+    return (parts[0] + DELIMITER + type_str + DELIMITER + parts[1]).upper()
+
+
 assert (
     encode("0x106d49f8505410eb4e671d51f7d96d2c87807b09", 1029)
     == "cfx:aajg4wt2mbmbb44sp6szd783ry0jtad5bea80xdy7p"
+)
+
+assert (
+    encode("0x106d49f8505410eb4e671d51f7d96d2c87807b09", 1029, True)
+    == "CFX:TYPE.USER:AAJG4WT2MBMBB44SP6SZD783RY0JTAD5BEA80XDY7P"
 )
 
 
