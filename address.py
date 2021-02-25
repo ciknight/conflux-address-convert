@@ -10,7 +10,7 @@ from base64 import b16decode, b16encode
 
 import base32
 
-HEX_PREFIX = "0X"
+HEX_PREFIX = "0x"
 HEX_PREFIX_LEN = 2
 HEX_BUFFER_LEN = 20
 
@@ -55,7 +55,7 @@ def _encode_payload(hex_buf: bytes) -> bytes:
 
 def _address_buffer_from_hex(hex_addr: str) -> bytes:
     hex_addr = hex_addr.upper()
-    if hex_addr.startswith(HEX_PREFIX):
+    if hex_addr.startswith(HEX_PREFIX.upper()):
         hex_addr = hex_addr[HEX_PREFIX_LEN:]
 
     buf = b16decode(hex_addr)
