@@ -5,7 +5,6 @@
 # Copyright © 2021 ci_knight<ci_knight@msn.cn>
 #
 # Distributed under terms of the MIT license.
-import struct
 from base64 import b16decode, b16encode
 
 import base32
@@ -23,7 +22,7 @@ NETWORK_ID_TESTNET = 1
 NETWORK_TEST = "cfxtest"
 NETWORK_LOCAL_PREFIX = "net"
 
-VERSION_BYTE = struct.pack("b", 0)  # 0x00
+VERSION_BYTE = bytes(1)  # 0x00
 
 DELIMITER = ":"
 
@@ -105,7 +104,7 @@ def _checksum_bytes(n: int) -> bytes:
 
 def _create_checksum(chain_prefix: str, payload: str) -> str:
     prefix_buf = _prefix_to_word(chain_prefix)
-    delimiter_buf = struct.pack("b", 0)
+    delimiter_buf = bytes(1)
     payload_buf = base32.decode_words(payload)
     n = _poly_mod(prefix_buf + delimiter_buf + payload_buf + CHECKSUM_TEMPLATE)
     return base32.encode(_checksum_bytes(n))
